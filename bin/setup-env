@@ -1,0 +1,86 @@
+#!/bin/bash
+
+#
+#  Songsmith environment setup.
+#
+#  author: ramr
+
+#
+#  Copyright 2024 ramr
+#
+#  License: See https://github.com/ramr/songsmith/blob/master/LICENSE
+#
+
+set -euo pipefail
+
+INSTALL_DIR=$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+readonly INSTALL_DIR
+
+
+#
+#  Ensure python3 virtual environment exists.
+#
+#  Usage:  _ensure_venv_exists
+#
+#  Examples:
+#      _ensure_venv_exists
+#
+function _ensure_venv_exists() {
+    if [ -d "${INSTALL_DIR}/.venv" ]; then
+        echo "  - Virtual environment already exists."
+    else
+        echo "  - Creating python3 virtual environment ..."
+        python3 -m venv "${INSTALL_DIR}/.venv"
+
+        echo "  - Done creating python3 virtual environment."
+    fi
+
+    echo ""
+    echo "  - To activate the virtual environment in bash, use:"
+    echo "       source  '${INSTALL_DIR}/.venv/bin/activate'"
+    echo ""
+
+}  #  End of function  _ensure_venv_exists.
+
+
+#
+#  Ensure pip packages are installed in the python3 virtual environment.
+#
+#  Usage:  _ensure_pip_packages
+#
+#  Examples:
+#      _ensure_pip_packages
+#
+function _ensure_pip_packages() {
+    if ! [[ "${VIRTUAL_ENV:-''}" == "${INSTALL_DIR}/.venv" ]]; then
+        #  Activate it for this bash script.
+
+        #shellcheck source=/dev/null
+        source "${INSTALL_DIR}/.venv/bin/activate"
+    fi
+
+    python3 -m pip install pandas
+
+}  #  End of function  _ensure_pip_packages.
+
+
+#
+#  Setup songsmith environment.
+#
+#  Usage:  _setup_env
+#
+#  Examples:
+#      _setup_env
+#
+function _setup_env() {
+    _ensure_venv_exists
+
+    _ensure_pip_packages
+
+}  #  End of function  _setup_env.
+
+
+#
+#  main():
+#
+_setup_env

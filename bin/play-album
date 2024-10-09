@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#
+#  Songsmith play album helper script.
+#
+#  author: ramr
+
+#
+#  Copyright 2024 ramr
+#
+#  License: See https://github.com/ramr/songsmith/blob/master/LICENSE
+#
+
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+readonly SCRIPT_DIR
+
+
+#
+#  main():
+#
+"${SCRIPT_DIR}/songsmith" -a "${*:-love over gold}" -p
