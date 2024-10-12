@@ -19,6 +19,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import random
 import subprocess
 from typing import Any, Dict
 from urllib.parse import unquote, urlparse
@@ -72,8 +73,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('-p', '--play', action="store_true",
                         help="play the filtered song list")
 
+    parser.add_argument('-m', '--mix', action="store_true",
+                        help="mix up (shuffle) the filtered song list")
+
     parser.add_argument('-l', '--list', action="store_true",
                         help="list details about the filtered song list")
+
+    parser.add_argument('-v', '--validate', action="store_true",
+                        help="check and validate song database")
 
     args = parser.parse_args()
     return args
@@ -124,6 +131,27 @@ def _build_database(source: Path, database: Path = DATAFILE) -> None:
     LOG.info("Metadata: %s", json.dumps(summary, indent=4))
 
 
+def _validate(database: str) -> None:
+    """ Validate songs in the database. """
+    df = load(database)
+
+    missing = []
+
+    for yuri in df['Location']:
+        song = unquote(urlparse(yuri).path)
+        if not Path(song).exists():
+            missing.append(song)
+
+    if len(missing) == 0:
+        LOG.info("Hakuna matata - all is good ... one less worry!")
+        return
+
+    LOG.info("%d Missing files:\n%s\n", len(missing),
+             json.dumps(missing, indent=4))
+
+
+
+
 def _search(database: str, args: argparse.Namespace) -> pandas.DataFrame:
     """ Search for songs matching the filtering criteria. """
     criteria = {"songs": args.songs, "albums": args.albums,
@@ -149,24 +177,28 @@ def _list(df: pandas.DataFrame, details: bool = False) -> None:
         LOG.info("Results: \n%s", df[columns])
 
 
-def _play(df: pandas.DataFrame, player: str = None) -> None:
+def _play(df: pandas.DataFrame, player: str = None,
+          shuffle: bool = False) -> None:
     """ Play all the tracks found. """
     _list(df)
 
     if not player:
         return
 
-    songs = [unquote(urlparse(yuri).path) for yuri in list(df['Location'])]
+    paths = [unquote(urlparse(yuri).path) for yuri in list(df['Location'])]
+    playlist = sorted(paths)
+    if shuffle:
+        random.shuffle(playlist)
 
     counter = 0
-    for song in sorted(songs):
+    for song in playlist:
         counter += 1
 
         args = player.split(" ")
         args.extend([song])
         LOG.info("Running command %s ...", args)
         LOG.info("Playing song %s ...\n  - Song #%d of %d\n", song,
-                 counter, len(songs))
+                 counter, len(playlist))
 
         try:
             _proc = subprocess.run(args, check=True)
@@ -194,10 +226,14 @@ def cli() -> None:
         _build_database(args.xml, config[CONFIG_DATABASE_KEY])
         return
 
+    if args.validate:
+        _validate(config[CONFIG_DATABASE_KEY])
+        return
+
     df = _search(config[CONFIG_DATABASE_KEY], args)
 
     if args.play:
-        _play(df, config[CONFIG_PLAYER_KEY])
+        _play(df, config[CONFIG_PLAYER_KEY], shuffle=args.mix)
         return
 
     _list(df, details=args.list)
