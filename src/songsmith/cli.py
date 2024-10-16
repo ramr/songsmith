@@ -73,11 +73,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('-v', '--validate', action="store_true",
                         help="check and validate song database")
 
-    parser.add_argument('-s', '--songs', type=str,
+    parser.add_argument('-s', '--songs', '--song', type=str,
                         help="filter matching songs")
-    parser.add_argument('-a', '--albums', type=str,
+    parser.add_argument('-a', '--albums', '--album', type=str,
                         help="filter songs in the matched albums")
-    parser.add_argument('-r', '--artists', type=str,
+    parser.add_argument('-r', '--artists', '--artist', type=str,
                         help="filter songs for the matched artists")
 
     parser.add_argument('-l', '--list', action="store_true",
