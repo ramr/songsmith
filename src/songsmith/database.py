@@ -27,20 +27,30 @@ from songsmith.logger import LOG
 
 
 BOOLEAN_COLUMNS = ["Album Loved", "Apple Music", "Clean", "Compilation",
-                   "Explicit", "HD", "Has Video", "Loved", "Matched",
-                   "Music Video", "Part of Gapless Album", "Playlist Only",
+                   "Explicit", "HD", "Purchased", "Has Video", "Loved",
+                   "Matched", "Music Video", "Part of Gapless Album",
+                   "Playlist Only", "Disabled", "Favorited",
                   ]
-NUMERIC_COLUMNS =["Artwork Count", "Bit Rate", "Disc Count", "Disc Number",
-                  "Play Count", "Play Date", "Sample Rate", "Size",
-                  "Skip Count", "Track Count", "Track ID", "Track Number",
-                  "Year",
+NUMERIC_COLUMNS = ["Artwork Count", "Bit Rate", "Disc Count", "Disc Number",
+                   "Play Count", "Sample Rate", "Size", "Skip Count",
+                   "Track Count", "Track ID", "Track Number", "Year",
+                   "Normalization", "BPM", "Volume Adjustment",
+                   "Library Folder Count", "Video Width", "File Type",
+                   "Stop Time", "Video Height", "Total Time", "Start Time",
+                   "File Folder Count",
+                  ]
+STRING_COLUMNS = ["Location", "Equalizer", "Grouping", "Sort Composer",
+                  "Album", "Sort Artist", "Comments", "Name", "Genre",
+                  "Sort Album", "Sort Name", "Artist", "Composer", "Kind",
+                  "Content Rating", "Track Type", "Persistent ID",
+                  "Sort Album Artist", "Album Artist",
                  ]
 DATE_COLUMNS = ["Date Added", "Date Modified", "Play Date UTC",
                 "Release Date", "Skip Date",
                ]
 
 # Apple uses different Unix epoch time - Jan 1, 1904 (earliest new year's
-# daya that fell on a leap year). Unix epoch is Jan 1, 1970 so adjust the
+# day that fell on a leap year). Unix epoch is Jan 1, 1970 so adjust the
 # Play Date column value by about 24107 days ((66 * 365) + 17 leap days).
 # And 24107 * 60 * 60 * 24 = 2082844800
 APPLE_EPOCH_DELTA_SECONDS = 2082844800
@@ -137,7 +147,11 @@ def _build_dataframe(tree: ElementTree.Element) -> pandas.DataFrame:
             data[c].append(numpy.nan)
 
     df = pandas.DataFrame(data)
-    df[NUMERIC_COLUMNS] = df[NUMERIC_COLUMNS].apply(pandas.to_numeric)
+
+    zeroed = df[NUMERIC_COLUMNS].fillna(0)
+    df[NUMERIC_COLUMNS] = zeroed.apply(pandas.to_numeric, downcast="signed")
+
+    df[STRING_COLUMNS] = df[STRING_COLUMNS].fillna("")
     df[DATE_COLUMNS] = df[DATE_COLUMNS].apply(pandas.to_datetime)
 
     # Apple uses different Unix epoch time - Jan 1, 1904 (earliest new
@@ -149,6 +163,7 @@ def _build_dataframe(tree: ElementTree.Element) -> pandas.DataFrame:
     # Ref: https://web.archive.org/web/20200805105853/http://joabj.com/Writing/Tech/Tuts/Java/iTunes-PlayDate.html
 
     delta = APPLE_EPOCH_DELTA_SECONDS
+    df["Play Date"] = pandas.to_numeric(df["Play Date"])
     df["Play Date"] = pandas.to_datetime(df["Play Date"] - delta, unit="s")
     df["Total Time"] = df["Total Time"].apply(pandas.to_numeric)
     df["Total Time"] = pandas.to_timedelta(df["Total Time"], unit="ms")

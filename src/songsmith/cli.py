@@ -37,17 +37,24 @@ DEFAULT_MEDIA_PLAYER = "mpv --vo=null --no-audio-display"
 CONFIG_PLAYER_KEY = "player"
 CONFIG_DATABASE_KEY = "database"
 
+LONG_VIEW_COLUMNS = ["Name", "Artist", "Album", "Genre", "Mins",
+                     "Composer", "Album Artist", "Year",
+                    ]
+
 DETAILS_COLUMNS = ["Name", "Artist", "Album", "Genre", "Mins",
-                   "Composer", "Album Artist", "Year",
                    "Track Number", "Disc Number", "Disc Count",
-                   "Size", "Total Time", "Bit Rate", "Sample Rate",
+                   "Size", "Total Time", "Play Count", "Year",
+                   "Bit Rate", "Sample Rate", "Date Added",
+                   "Compilation", "Favorited", "Music Video",
                    "Location",
                    "Comments",
                   ]
 
-DISPLAY_OPTIONS = ['display.max_rows', 100,
+DISPLAY_OPTIONS = ['display.max_rows', 128,
                    'display.max_columns', None,
                    'display.precision', 2,
+                   'display.width', 0,
+                   'display.max_colwidth', 32,
                   ]
 
 
@@ -63,12 +70,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('-x', '--xml', type=str, default=LIBRARY,
                         help="location of exported music Library.xml")
 
-    parser.add_argument('-r', '--artists', type=str,
-                        help="filter songs for the matched artists")
-    parser.add_argument('-a', '--albums', type=str,
-                        help="filter songs in the matched albums")
+    parser.add_argument('-v', '--validate', action="store_true",
+                        help="check and validate song database")
+
     parser.add_argument('-s', '--songs', type=str,
                         help="filter matching songs")
+    parser.add_argument('-a', '--albums', type=str,
+                        help="filter songs in the matched albums")
+    parser.add_argument('-r', '--artists', type=str,
+                        help="filter songs for the matched artists")
+
+    parser.add_argument('-l', '--list', action="store_true",
+                        help="list details about the filtered song list")
 
     parser.add_argument('-p', '--play', action="store_true",
                         help="play the filtered song list")
@@ -76,11 +89,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('-m', '--mix', action="store_true",
                         help="mix up (shuffle) the filtered song list")
 
-    parser.add_argument('-l', '--list', action="store_true",
-                        help="list details about the filtered song list")
-
-    parser.add_argument('-v', '--validate', action="store_true",
-                        help="check and validate song database")
+    parser.add_argument('-n', '--nsamples', type=int, default=0,
+                        help="randomly sample 'n' songs")
 
     args = parser.parse_args()
     return args
@@ -154,12 +164,17 @@ def _validate(database: str) -> None:
 
 def _search(database: str, args: argparse.Namespace) -> pandas.DataFrame:
     """ Search for songs matching the filtering criteria. """
+    df = load(database)
+
     criteria = {"songs": args.songs, "albums": args.albums,
                 "artists": args.artists,
                }
+    results = apply(df, criteria)
 
-    df = load(database)
-    return apply(df, criteria)
+    if args.nsamples > 0 and args.nsamples < len(results):
+        results = results.sample(n=args.nsamples)
+
+    return results
 
 
 def _list(df: pandas.DataFrame, details: bool = False) -> None:
@@ -172,9 +187,11 @@ def _list(df: pandas.DataFrame, details: bool = False) -> None:
         LOG.info("Result: \n%s", df[DETAILS_COLUMNS].T)
         return
 
+    cols = ["Name", "Artist", "Mins"]
+
     with pandas.option_context(*DISPLAY_OPTIONS):
-        columns = DETAILS_COLUMNS if details else DETAILS_COLUMNS[:5]
-        LOG.info("Results: \n%s", df[columns])
+        columns = LONG_VIEW_COLUMNS if details else cols
+        LOG.info("Results: %d songs\n%s", len(df), df[:][columns])
 
 
 def _play(df: pandas.DataFrame, player: str = None,
