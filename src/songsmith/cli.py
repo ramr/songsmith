@@ -79,6 +79,11 @@ def _parse_args() -> argparse.Namespace:
                         help="filter songs in the matched albums")
     parser.add_argument('-r', '--artists', '--artist', type=str,
                         help="filter songs for the matched artists")
+    parser.add_argument('-g', '--genre', type=str,
+                        help="filter songs by genre")
+
+    parser.add_argument('-t', '--topmost', action="store_true",
+                        help="filter topmost `-n` songs")
 
     parser.add_argument('-l', '--list', action="store_true",
                         help="list details about the filtered song list")
@@ -90,7 +95,7 @@ def _parse_args() -> argparse.Namespace:
                         help="mix up (shuffle) the filtered song list")
 
     parser.add_argument('-n', '--nsamples', type=int, default=0,
-                        help="randomly sample 'n' songs")
+                        help="filter or randomly sample 'n' songs")
 
     args = parser.parse_args()
     return args
@@ -160,6 +165,14 @@ def _validate(database: str) -> None:
              json.dumps(missing, indent=4))
 
 
+def _topmost(df: pandas.DataFrame, n: int = 40):
+    """ Filter the latest `n` songs. """
+    if n <= 0:
+        n = 40
+
+    criteria = ["Date Added", "Track Number"]
+    order = [False, True]
+    return df.sort_values(by=criteria, ascending=order)[:n]
 
 
 def _search(database: str, args: argparse.Namespace) -> pandas.DataFrame:
@@ -167,11 +180,13 @@ def _search(database: str, args: argparse.Namespace) -> pandas.DataFrame:
     df = load(database)
 
     criteria = {"songs": args.songs, "albums": args.albums,
-                "artists": args.artists,
+                "artists": args.artists, "genre": args.genre,
                }
     results = apply(df, criteria)
 
-    if args.nsamples > 0 and args.nsamples < len(results):
+    if args.topmost:
+        results = _topmost(results, args.nsamples)
+    elif args.nsamples > 0 and args.nsamples < len(results):
         results = results.sample(n=args.nsamples)
 
     return results

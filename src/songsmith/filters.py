@@ -21,7 +21,7 @@ from songsmith.logger import LOG
 
 
 FILTER_COLUMNS_MAP = {"songs": "Name", "albums": "Album",
-                     "artists": "Artist",
+                     "artists": "Artist", "genre": "Genre",
                     }
 
 

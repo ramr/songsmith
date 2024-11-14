@@ -56,8 +56,8 @@ cp ~/Downloads/Library.xml data/
 
 ## Search Functions
 
-The songsmith utility provides 3 different ways to filter songs. This can
-be done by searching for song title, album titles or artist/band names.
+The songsmith utility provides a few ways to filter songs. This can be done
+by searching for song title, album titles, artist/band names, or genre.
 These filters are just text that matches up in the title - one or more words
 contained in the title (and in the same order) or a more complicated set
 as containing multiple choices.
@@ -133,10 +133,36 @@ Examples:
 
 ```
 
+### Genre Search
+
+To filter songs by genre, use the `-g` or `--genre` options.
+
+Examples:
+
+```shell
+
+./bin/songsmith --genre 'rock'  # by rock genre
+./bin/songsmith --genre 'hard rock' # by ordered words
+./bin/songsmith -g 'arena rock|blues|indie'
+```
+
+### Latest Added Search
+
+To filter the latest added songs, use the `-t` or `--topmost` options.
+
+Examples:
+
+```shell
+
+./bin/songsmith --topmost
+./bin/songsmith --topmost -n 10  # last 10 added songs.
+./bin/songsmith -t
+```
+
 ### Combo Search
 
-You can use a combination of the `-a`, `-r`, `-s` options (or their
-full option variants ala `--albums`) to reduce the search results.
+You can use a combination of the `-a`, `-r`, `-s`, `-g`, `-t` options
+(or their full option variants ala `--albums`) to reduce the search results.
 
 As an example, using a song filter `'telegraph|norwegian wood|help'` will
 filter songs containing the words `telegraph` or then `norwegian` followed
@@ -162,6 +188,9 @@ Examples:
 
 # filter down specific song[s] by artist and album.
 ./bin/songsmith  -s 'hey joe' --artist hendrix -a 'bbc sessions'
+
+# filter down last 10 added songs by an artist, album and genre.
+./bin/songsmith  -n 10 -t -r 'knopfler' -a 'one deep river' -g 'rock'
 
 ```
 
